@@ -1,0 +1,13 @@
+# Local env files
+*.env
+*.env.production
+
+# Python virtual environment
+venv/
+
+# Database files
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log

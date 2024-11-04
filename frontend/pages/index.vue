@@ -1,0 +1,3 @@
+<template>
+  <WaitLoadWrapper></WaitLoadWrapper>
+</template>

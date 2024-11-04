@@ -1,0 +1,5 @@
+api/migrations/
+api/__pycache__/
+backend/__pycache__/
+backend/management/__pycache__/
+backend/management/commands/__pycache__/
