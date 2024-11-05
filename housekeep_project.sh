@@ -5,7 +5,7 @@
 rm -rf backend/db.sqlite3
 . $(pwd)/venv/bin/activate
 pip freeze > requirements.txt
-pip install -r requirements.txt --upgrade
+pip install -r requirements.txt
 cd backend && python3 manage.py makemigrations && python3 manage.py migrate && cd ..
 black $(pwd)
 deactivate
