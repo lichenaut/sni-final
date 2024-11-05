@@ -24,3 +24,4 @@ logs
 !.env.example
 
 public/video.mp4
+public/reencoded_video.mp4

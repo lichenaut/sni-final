@@ -1,4 +1,4 @@
-# $project_name
+# sni-final
 
 Project generated from a lichenaut script
 
