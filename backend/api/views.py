@@ -1,5 +1,7 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 import os
 import shutil
 import cv2
@@ -8,9 +10,18 @@ from glob import glob
 import networkx as nx
 import matplotlib.pyplot as plt
 
+
 class Videoize(APIView):
-    def gen_video(data_folder, node_count):
-        extract_dir = os.path.expanduser(f"{os.getcwd()}/data/{data_folder}/")
+    def post(self, request, *args, **kwargs):
+        data_folder = request.data.get("data_folder")
+        try:
+            node_count = int(request.data.get("node_count"))
+        except ValueError:
+            return Response({"error": "Invalid node count provided."}, status=status.HTTP_400_BAD_REQUEST)
+        show_uncircled = bool(request.data.get("show_uncircled"))
+
+        root_dir = os.path.dirname(os.getcwd())
+        extract_dir = os.path.expanduser(f"{root_dir}/data/{data_folder}/")
         file_paths = {
             "edges": glob(os.path.join(extract_dir, "*.edges")),
             "circles": glob(os.path.join(extract_dir, "*.circles")),
@@ -27,7 +38,6 @@ class Videoize(APIView):
                     ]
                     data.extend(cleaned_lines)
             return data
-
 
         edges_data = read_files(file_paths["edges"])[:node_count]
         circles_data = read_files(file_paths["circles"])[:node_count]
@@ -51,10 +61,16 @@ class Videoize(APIView):
                 circle_colors[member] = color
                 nodes_with_circles.add(member)
 
+        if show_uncircled:
+            for node in G.nodes():
+                if node not in nodes_with_circles:
+                    circle_colors[node] = (0.5, 0.5, 0.5)
+                    nodes_with_circles.add(node)
+
         pos = nx.spring_layout(G)
         centrality = nx.betweenness_centrality(G)
 
-        images_dir = f"{os.getcwd()}/images/"
+        images_dir = f"{root_dir}/images/"
         if os.path.exists(images_dir):
             shutil.rmtree(images_dir)
         os.makedirs(images_dir)
@@ -115,8 +131,11 @@ class Videoize(APIView):
         first_image = cv2.imread(os.path.join(images_dir, images[0]))
         height, width, layers = first_image.shape
 
+        public_dir = f"{root_dir}/frontend/public"
+
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        video = cv2.VideoWriter('frontend/public/video.mp4', fourcc, len(images) / 30, (width, height))
+        os.remove(f"{public_dir}/video.mp4")
+        video = cv2.VideoWriter(f"{public_dir}/video.mp4", fourcc, len(images) / 30, (width, height))
 
         for image in images:
             img_path = os.path.join(images_dir, image)
@@ -130,7 +149,7 @@ class Videoize(APIView):
             for filename in os.listdir(input_directory):
                 if filename.endswith('.mp4'):
                     input_path = os.path.join(input_directory, filename)
-                    output_path = os.path.join(output_directory, f'reencoded_{filename}')
+                    output_path = os.path.join(output_directory, f'reencoded_video.mp4')
 
                     command = [
                         'ffmpeg',
@@ -147,5 +166,7 @@ class Videoize(APIView):
                     except subprocess.CalledProcessError as e:
                         print(f'Error re-encoding {filename}: {e}')
 
-        public_dir = f"{os.getcwd()}/frontend/public"
+        os.remove(f"{public_dir}/reencoded_video.mp4")
         reencode_video(public_dir, public_dir)
+
+        return Response({"message": "Video generated and re-encoded successfully."}, status=status.HTTP_200_OK)
